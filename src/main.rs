@@ -22,13 +22,12 @@ pub mod day_1 {
             .flatten()
     }
 
-    pub fn part_1() {
-        let answer = inventories().max().unwrap();
-        println!("{answer}");
+    pub fn part_1() -> u32 {
+        inventories().max().unwrap()
     }
 
-    pub fn part_2() {
-        let answer: u32 = inventories()
+    pub fn part_2() -> u32 {
+        inventories()
             .fold([0, 0, 0], |mut acc, inv| {
                 let min = *acc.iter().min().unwrap();
                 if min < inv {
@@ -37,8 +36,7 @@ pub mod day_1 {
                 acc
             })
             .iter()
-            .sum();
-        println!("{answer}");
+            .sum()
     }
 }
 
@@ -69,9 +67,9 @@ pub mod day_2 {
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
             match s {
-                "A" | "X" => Ok(Self::Rock),
-                "B" | "Y" => Ok(Self::Paper),
-                "C" | "Z" => Ok(Self::Scissors),
+                "A" => Ok(Self::Rock),
+                "B" => Ok(Self::Paper),
+                "C" => Ok(Self::Scissors),
                 _ => bail!("oof"),
             }
         }
@@ -94,61 +92,64 @@ pub mod day_2 {
         }
     }
 
-    #[derive(Clone, Copy, Debug)]
-    struct Fight {
-        opponent: Shape,
-        you: Shape,
-    }
-
-    impl Fight {
-        fn outcome(self) -> FightOutcome {
-            use Shape::*;
-
-            // TODO: generalize if there are more
-            match (self.you, self.opponent) {
-                (Rock, Scissors) => FightOutcome::Win,
-                (Paper, Rock) => FightOutcome::Win,
-                (Scissors, Paper) => FightOutcome::Win,
-
-                (Rock, Rock) => FightOutcome::Draw,
-                (Paper, Paper) => FightOutcome::Draw,
-                (Scissors, Scissors) => FightOutcome::Draw,
-
-                (Rock, Paper) => FightOutcome::Loss,
-                (Paper, Scissors) => FightOutcome::Loss,
-                (Scissors, Rock) => FightOutcome::Loss,
-            }
-        }
-
-        fn score(self) -> u32 {
-            self.you.score() + self.outcome().score()
-        }
-    }
-
-    impl FromStr for Fight {
+    impl FromStr for FightOutcome {
         type Err = Error;
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
-            let (a, b) = s.split_once(' ').ok_or_else(|| Error::msg("foo"))?;
-            Ok(Self {
-                opponent: a.parse()?,
-                you: b.parse()?,
-            })
+            match s {
+                "X" => Ok(Self::Loss),
+                "Y" => Ok(Self::Draw),
+                "Z" => Ok(Self::Win),
+                _ => Err(Error::msg("ack")),
+            }
         }
     }
 
-    pub fn part_1() {
-        let answer = io::stdin()
-            .lines()
-            .flat_map(Result::ok)
-            .map(|s| Fight::from_str(&s))
-            .flat_map(Result::ok)
-            .map(Fight::score)
-            .sum::<u32>();
-        println!("{answer}");
+    fn fight_outcome(you: Shape, opponent: Shape) -> FightOutcome {
+        use Shape::*;
+
+        // TODO: generalize if there are more
+        match (you, opponent) {
+            (Rock, Scissors) => FightOutcome::Win,
+            (Paper, Rock) => FightOutcome::Win,
+            (Scissors, Paper) => FightOutcome::Win,
+
+            (Rock, Rock) => FightOutcome::Draw,
+            (Paper, Paper) => FightOutcome::Draw,
+            (Scissors, Scissors) => FightOutcome::Draw,
+
+            (Rock, Paper) => FightOutcome::Loss,
+            (Paper, Scissors) => FightOutcome::Loss,
+            (Scissors, Rock) => FightOutcome::Loss,
+        }
+    }
+
+    fn fights() -> impl Iterator<Item = (Shape, FightOutcome)> {
+        io::stdin().lines().flat_map(Result::ok).flat_map(|s| {
+            let (a, b) = s.split_once(' ')?;
+            Some((a.parse().ok()?, b.parse().ok()?))
+        })
+    }
+
+    pub fn part_1() -> u32 {
+        fn misinterpret_as_shape(outcome: FightOutcome) -> Shape {
+            match outcome {
+                FightOutcome::Win => Shape::Scissors,
+                FightOutcome::Draw => Shape::Paper,
+                FightOutcome::Loss => Shape::Rock,
+            }
+        }
+
+        fights()
+            .map(|(opponent, outcome)| {
+                let you = misinterpret_as_shape(outcome);
+                you.score() + fight_outcome(you, opponent).score()
+            })
+            .sum()
     }
 }
 
 fn main() {
-    day_2::part_1()
+    let answer = day_2::part_1();
+    println!("{answer}");
 }
