@@ -60,6 +60,10 @@ pub mod day_2 {
                 Self::Scissors => 3,
             }
         }
+
+        fn all() -> impl Iterator<Item = Self> {
+            [Self::Rock, Self::Paper, Self::Scissors].into_iter()
+        }
     }
 
     impl FromStr for Shape {
@@ -75,7 +79,7 @@ pub mod day_2 {
         }
     }
 
-    #[derive(Clone, Copy, Debug)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     enum FightOutcome {
         Win,
         Draw,
@@ -131,6 +135,10 @@ pub mod day_2 {
         })
     }
 
+    fn score(shape: Shape, outcome: FightOutcome) -> u32 {
+        shape.score() + outcome.score()
+    }
+
     pub fn part_1() -> u32 {
         fn misinterpret_as_shape(outcome: FightOutcome) -> Shape {
             match outcome {
@@ -143,13 +151,28 @@ pub mod day_2 {
         fights()
             .map(|(opponent, outcome)| {
                 let you = misinterpret_as_shape(outcome);
-                you.score() + fight_outcome(you, opponent).score()
+                score(you, fight_outcome(you, opponent))
+            })
+            .sum()
+    }
+
+    pub fn part_2() -> u32 {
+        fn pick_shape_for_outcome(opponent: Shape, outcome: FightOutcome) -> Shape {
+            Shape::all()
+                .find(|shape| fight_outcome(*shape, opponent) == outcome)
+                .unwrap()
+        }
+
+        fights()
+            .map(|(opponent, outcome)| {
+                let you = pick_shape_for_outcome(opponent, outcome);
+                score(you, outcome)
             })
             .sum()
     }
 }
 
 fn main() {
-    let answer = day_2::part_1();
+    let answer = day_2::part_2();
     println!("{answer}");
 }
