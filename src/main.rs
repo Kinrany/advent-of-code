@@ -6,12 +6,17 @@ pub fn dbg<T: fmt::Debug>(s: &'static str) -> impl Fn(&T) {
     move |x| println!("{s}: {x:?}")
 }
 
+fn lines() -> impl Iterator<Item = String> {
+    std::io::stdin().lines().flat_map(Result::ok)
+}
+
 pub mod day_1 {
-    use std::{io, mem};
+    use std::mem;
+
+    use super::lines;
 
     fn inventories() -> impl Iterator<Item = u32> {
-        let lines = io::stdin().lines().map(Result::unwrap);
-        let meals = lines.map(|line| line.trim().parse::<u32>().ok());
+        let meals = lines().map(|line| line.trim().parse::<u32>().ok());
         meals
             .chain([None])
             .scan(0, |inv, meal| match meal {
@@ -43,9 +48,11 @@ pub mod day_1 {
 }
 
 pub mod day_2 {
-    use std::{io, str::FromStr};
+    use std::str::FromStr;
 
     use anyhow::Error;
+
+    use super::lines;
 
     #[derive(Clone, Copy, Debug)]
     enum Shape {
@@ -131,7 +138,7 @@ pub mod day_2 {
     }
 
     fn fights() -> impl Iterator<Item = (Shape, FightOutcome)> {
-        io::stdin().lines().flat_map(Result::ok).flat_map(|s| {
+        lines().flat_map(|s| {
             let (a, b) = s.split_once(' ')?;
             Some((a.parse().ok()?, b.parse().ok()?))
         })
@@ -175,7 +182,9 @@ pub mod day_2 {
 }
 
 pub mod day_3 {
-    use std::{collections::BTreeSet, io};
+    use std::collections::BTreeSet;
+
+    use super::lines;
 
     fn priority(ch: char) -> u32 {
         match ch {
@@ -185,12 +194,8 @@ pub mod day_3 {
         }
     }
 
-    fn rucksacks() -> impl Iterator<Item = String> {
-        io::stdin().lines().filter_map(Result::ok)
-    }
-
     pub fn part_1() -> u32 {
-        rucksacks()
+        lines()
             .map(|s| {
                 let middle = s.len() / 2;
                 let a = s[..middle].chars().collect::<BTreeSet<_>>();
@@ -202,7 +207,7 @@ pub mod day_3 {
     }
 
     pub fn part_2() -> u32 {
-        rucksacks()
+        lines()
             .array_chunks::<3>()
             .map(|arr| {
                 let [a, b, c] = arr.map(|s| s.chars().collect::<BTreeSet<_>>());
