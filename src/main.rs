@@ -43,7 +43,7 @@ pub mod day_1 {
 pub mod day_2 {
     use std::{io, str::FromStr};
 
-    use anyhow::{bail, Error};
+    use anyhow::Error;
 
     #[derive(Clone, Copy, Debug)]
     enum Shape {
@@ -74,7 +74,7 @@ pub mod day_2 {
                 "A" => Ok(Self::Rock),
                 "B" => Ok(Self::Paper),
                 "C" => Ok(Self::Scissors),
-                _ => bail!("oof"),
+                _ => panic!("oof"),
             }
         }
     }
@@ -104,7 +104,7 @@ pub mod day_2 {
                 "X" => Ok(Self::Loss),
                 "Y" => Ok(Self::Draw),
                 "Z" => Ok(Self::Win),
-                _ => Err(Error::msg("ack")),
+                _ => panic!("ack"),
             }
         }
     }
@@ -172,7 +172,33 @@ pub mod day_2 {
     }
 }
 
+pub mod day_3 {
+    use std::{collections::BTreeSet, io};
+
+    pub fn part_1() -> u32 {
+        fn priority(ch: char) -> u32 {
+            match ch {
+                'a'..='z' => 1 + ch as u32 - 'a' as u32,
+                'A'..='Z' => 27 + ch as u32 - 'A' as u32,
+                _ => panic!("och"),
+            }
+        }
+
+        io::stdin()
+            .lines()
+            .filter_map(Result::ok)
+            .map(|s| {
+                let middle = s.len() / 2;
+                let a = s[..middle].chars().collect::<BTreeSet<_>>();
+                let b = s[middle..].chars().collect::<BTreeSet<_>>();
+                *a.intersection(&b).next().unwrap()
+            })
+            .map(priority)
+            .sum()
+    }
+}
+
 fn main() {
-    let answer = day_2::part_2();
+    let answer = day_3::part_1();
     println!("{answer}");
 }
