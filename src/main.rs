@@ -1,3 +1,5 @@
+#![feature(iter_array_chunks)]
+
 use std::fmt;
 
 pub fn dbg<T: fmt::Debug>(s: &'static str) -> impl Fn(&T) {
@@ -175,18 +177,20 @@ pub mod day_2 {
 pub mod day_3 {
     use std::{collections::BTreeSet, io};
 
-    pub fn part_1() -> u32 {
-        fn priority(ch: char) -> u32 {
-            match ch {
-                'a'..='z' => 1 + ch as u32 - 'a' as u32,
-                'A'..='Z' => 27 + ch as u32 - 'A' as u32,
-                _ => panic!("och"),
-            }
+    fn priority(ch: char) -> u32 {
+        match ch {
+            'a'..='z' => 1 + ch as u32 - 'a' as u32,
+            'A'..='Z' => 27 + ch as u32 - 'A' as u32,
+            _ => panic!("och"),
         }
+    }
 
-        io::stdin()
-            .lines()
-            .filter_map(Result::ok)
+    fn rucksacks() -> impl Iterator<Item = String> {
+        io::stdin().lines().filter_map(Result::ok)
+    }
+
+    pub fn part_1() -> u32 {
+        rucksacks()
             .map(|s| {
                 let middle = s.len() / 2;
                 let a = s[..middle].chars().collect::<BTreeSet<_>>();
@@ -196,9 +200,20 @@ pub mod day_3 {
             .map(priority)
             .sum()
     }
+
+    pub fn part_2() -> u32 {
+        rucksacks()
+            .array_chunks::<3>()
+            .map(|arr| {
+                let [a, b, c] = arr.map(|s| s.chars().collect::<BTreeSet<_>>());
+                *a.intersection(&b).find(|ch| c.contains(*ch)).unwrap()
+            })
+            .map(priority)
+            .sum()
+    }
 }
 
 fn main() {
-    let answer = day_3::part_1();
+    let answer = day_3::part_2();
     println!("{answer}");
 }
