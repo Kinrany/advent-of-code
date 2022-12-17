@@ -1,6 +1,6 @@
 #![feature(iter_array_chunks)]
 
-use std::fmt;
+use std::{fmt, str::FromStr};
 
 pub fn dbg<T: fmt::Debug>(s: &'static str) -> impl Fn(&T) {
     move |x| println!("{s}: {x:?}")
@@ -13,7 +13,7 @@ fn lines() -> impl Iterator<Item = String> {
 pub mod day_1 {
     use std::mem;
 
-    use super::lines;
+    use super::*;
 
     fn inventories() -> impl Iterator<Item = u32> {
         let meals = lines().map(|line| line.trim().parse::<u32>().ok());
@@ -48,11 +48,9 @@ pub mod day_1 {
 }
 
 pub mod day_2 {
-    use std::str::FromStr;
-
     use anyhow::Error;
 
-    use super::lines;
+    use super::*;
 
     #[derive(Clone, Copy, Debug)]
     enum Shape {
@@ -184,7 +182,7 @@ pub mod day_2 {
 pub mod day_3 {
     use std::collections::BTreeSet;
 
-    use super::lines;
+    use super::*;
 
     fn priority(ch: char) -> u32 {
         match ch {
@@ -218,7 +216,57 @@ pub mod day_3 {
     }
 }
 
+pub mod day_4 {
+    use std::{num::ParseIntError, ops::RangeInclusive};
+
+    use super::*;
+
+    struct Assignment(RangeInclusive<u32>);
+
+    impl Assignment {
+        fn contains(&self, other: &Self) -> bool {
+            self.0.start() <= other.0.start() && other.0.end() <= self.0.end()
+        }
+    }
+
+    impl FromStr for Assignment {
+        type Err = ParseIntError;
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            let (a, b) = s.split_once('-').unwrap();
+            let a: u32 = a.parse()?;
+            let b: u32 = b.parse()?;
+            Ok(Self(a..=b))
+        }
+    }
+
+    struct AssignmentPair(Assignment, Assignment);
+
+    impl AssignmentPair {
+        fn one_contains_other(&self) -> bool {
+            self.0.contains(&self.1) || self.1.contains(&self.0)
+        }
+    }
+
+    impl FromStr for AssignmentPair {
+        type Err = ParseIntError;
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            let (a, b) = s.split_once(',').unwrap();
+            Ok(Self(a.parse()?, b.parse()?))
+        }
+    }
+
+    pub fn part_1() -> u32 {
+        lines()
+            .map(|s| AssignmentPair::from_str(&s))
+            .filter_map(|a| a.ok())
+            .filter(|a| a.one_contains_other())
+            .count() as u32
+    }
+}
+
 fn main() {
-    let answer = day_3::part_2();
+    let answer = day_4::part_1();
     println!("{answer}");
 }
