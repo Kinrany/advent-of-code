@@ -1,13 +1,13 @@
 #![feature(iter_array_chunks, get_many_mut)]
 
-use std::{fmt, str::FromStr};
+use std::{fmt, io, str::FromStr};
 
 pub fn dbg<T: fmt::Debug>(s: &'static str) -> impl Fn(&T) {
     move |x| println!("{s}: {x:?}")
 }
 
 fn lines() -> impl Iterator<Item = String> {
-    std::io::stdin().lines().flat_map(Result::ok)
+    io::stdin().lines().flat_map(Result::ok)
 }
 
 pub mod day_1 {
@@ -451,8 +451,34 @@ pub mod day_5 {
     }
 }
 
+pub mod day_6 {
+
+    use itertools::Itertools;
+    use smallvec::SmallVec;
+
+    use super::*;
+
+    const SEQUENCE_LENGTH: usize = 4;
+
+    pub fn part_1() -> usize {
+        let chars = lines().flat_map(|s| s.chars().collect::<Vec<_>>());
+        let sequences = chars
+            .tuple_windows()
+            .map(|(a, b, c, d)| SmallVec::<[char; SEQUENCE_LENGTH]>::from([a, b, c, d]));
+        sequences
+            .enumerate()
+            .find_map(|(idx, mut seq)| {
+                seq.sort_unstable();
+                seq.dedup();
+                (seq.len() == SEQUENCE_LENGTH).then_some(idx)
+            })
+            .unwrap()
+            + SEQUENCE_LENGTH
+    }
+}
+
 fn main() {
     tracing_subscriber::fmt::init();
-    let answer = day_5::part_2();
+    let answer = day_6::part_1();
     println!("{answer}");
 }
