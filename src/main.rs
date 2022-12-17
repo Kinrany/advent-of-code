@@ -1,4 +1,11 @@
 #![feature(iter_array_chunks, get_many_mut)]
+#![warn(clippy::all, clippy::pedantic)]
+#![allow(
+    clippy::wildcard_imports,
+    clippy::missing_panics_doc,
+    clippy::must_use_candidate,
+    clippy::cast_possible_truncation
+)]
 
 use std::{fmt, io, str::FromStr};
 
@@ -7,7 +14,7 @@ pub fn dbg<T: fmt::Debug>(s: &'static str) -> impl Fn(&T) {
 }
 
 fn lines() -> impl Iterator<Item = String> {
-    io::stdin().lines().flat_map(Result::ok)
+    io::stdin().lines().filter_map(Result::ok)
 }
 
 pub mod day_1 {
@@ -117,26 +124,18 @@ pub mod day_2 {
     }
 
     fn fight_outcome(you: Shape, opponent: Shape) -> FightOutcome {
-        use Shape::*;
+        use Shape::{Paper, Rock, Scissors};
 
         // TODO: generalize if there are more
         match (you, opponent) {
-            (Rock, Scissors) => FightOutcome::Win,
-            (Paper, Rock) => FightOutcome::Win,
-            (Scissors, Paper) => FightOutcome::Win,
-
-            (Rock, Rock) => FightOutcome::Draw,
-            (Paper, Paper) => FightOutcome::Draw,
-            (Scissors, Scissors) => FightOutcome::Draw,
-
-            (Rock, Paper) => FightOutcome::Loss,
-            (Paper, Scissors) => FightOutcome::Loss,
-            (Scissors, Rock) => FightOutcome::Loss,
+            (Rock, Scissors) | (Paper, Rock) | (Scissors, Paper) => FightOutcome::Win,
+            (Rock, Rock) | (Paper, Paper) | (Scissors, Scissors) => FightOutcome::Draw,
+            (Rock, Paper) | (Paper, Scissors) | (Scissors, Rock) => FightOutcome::Loss,
         }
     }
 
     fn fights() -> impl Iterator<Item = (Shape, FightOutcome)> {
-        lines().flat_map(|s| {
+        lines().filter_map(|s| {
             let (a, b) = s.split_once(' ')?;
             Some((a.parse().ok()?, b.parse().ok()?))
         })
@@ -271,8 +270,8 @@ pub mod day_4 {
 
         lines()
             .map(|s| AssignmentPair::from_str(&s))
-            .filter_map(|a| a.ok())
-            .filter(|a| a.one_contains_other())
+            .filter_map(Result::ok)
+            .filter(AssignmentPair::one_contains_other)
             .count() as u32
     }
 
@@ -285,8 +284,8 @@ pub mod day_4 {
 
         lines()
             .map(|s| AssignmentPair::from_str(&s))
-            .filter_map(|a| a.ok())
-            .filter(|a| a.overlap())
+            .filter_map(Result::ok)
+            .filter(AssignmentPair::overlap)
             .count() as u32
     }
 }
@@ -389,7 +388,7 @@ pub mod day_5 {
 
     fn commands() -> impl Iterator<Item = Move> {
         lines()
-            .skip_while(while_not_found(|line: &String| line.is_empty()))
+            .skip_while(while_not_found(String::is_empty))
             .filter_map(|l| l.parse().ok())
     }
 
