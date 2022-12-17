@@ -452,32 +452,55 @@ pub mod day_5 {
 
 pub mod day_6 {
 
-    use itertools::Itertools;
+    use std::iter;
+
     use smallvec::SmallVec;
 
     use super::*;
 
-    const SEQUENCE_LENGTH: usize = 4;
+    /// [`SmallVec`] does not yet support generic `[T; N]` backing storage,
+    /// but any extra items will just spill onto the heap.
+    const MAX_EXPECTED_SEQUENCE_LENGTH: usize = 16;
 
-    pub fn part_1() -> usize {
+    fn find_marker<const LEN: usize>() -> usize {
         let chars = lines().flat_map(|s| s.chars().collect::<Vec<_>>());
-        let sequences = chars
-            .tuple_windows()
-            .map(|(a, b, c, d)| SmallVec::<[char; SEQUENCE_LENGTH]>::from([a, b, c, d]));
+
+        // Sequences of LEN characters
+        let sequences = iter::from_fn({
+            let mut chars = chars;
+            let mut vec = SmallVec::<[char; MAX_EXPECTED_SEQUENCE_LENGTH]>::with_capacity(LEN);
+            vec.extend(chars.by_ref().take(LEN - 1));
+            move || {
+                let ch = chars.next()?;
+                vec.push(ch);
+                let seq = vec.clone();
+                vec.remove(0);
+                Some(seq)
+            }
+        });
+
         sequences
             .enumerate()
             .find_map(|(idx, mut seq)| {
                 seq.sort_unstable();
                 seq.dedup();
-                (seq.len() == SEQUENCE_LENGTH).then_some(idx)
+                (seq.len() == LEN).then_some(idx)
             })
             .unwrap()
-            + SEQUENCE_LENGTH
+            + LEN
+    }
+
+    pub fn part_1() -> usize {
+        find_marker::<4>()
+    }
+
+    pub fn part_2() -> usize {
+        find_marker::<14>()
     }
 }
 
 fn main() {
     tracing_subscriber::fmt::init();
-    let answer = day_6::part_1();
+    let answer = day_6::part_2();
     println!("{answer}");
 }
