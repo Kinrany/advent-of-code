@@ -217,17 +217,14 @@ pub mod day_3 {
 }
 
 pub mod day_4 {
-    use std::{num::ParseIntError, ops::RangeInclusive};
+    use std::{
+        num::ParseIntError,
+        ops::{Deref, RangeInclusive},
+    };
 
     use super::*;
 
     struct Assignment(RangeInclusive<u32>);
-
-    impl Assignment {
-        fn contains(&self, other: &Self) -> bool {
-            self.0.start() <= other.0.start() && other.0.end() <= self.0.end()
-        }
-    }
 
     impl FromStr for Assignment {
         type Err = ParseIntError;
@@ -240,13 +237,15 @@ pub mod day_4 {
         }
     }
 
-    struct AssignmentPair(Assignment, Assignment);
+    impl Deref for Assignment {
+        type Target = RangeInclusive<u32>;
 
-    impl AssignmentPair {
-        fn one_contains_other(&self) -> bool {
-            self.0.contains(&self.1) || self.1.contains(&self.0)
+        fn deref(&self) -> &Self::Target {
+            &self.0
         }
     }
+
+    struct AssignmentPair(Assignment, Assignment);
 
     impl FromStr for AssignmentPair {
         type Err = ParseIntError;
@@ -258,15 +257,41 @@ pub mod day_4 {
     }
 
     pub fn part_1() -> u32 {
+        impl Assignment {
+            fn contains_other(&self, other: &Self) -> bool {
+                self.start() <= other.start() && other.end() <= self.end()
+            }
+        }
+
+        impl AssignmentPair {
+            fn one_contains_other(&self) -> bool {
+                self.0.contains_other(&self.1) || self.1.contains_other(&self.0)
+            }
+        }
+
         lines()
             .map(|s| AssignmentPair::from_str(&s))
             .filter_map(|a| a.ok())
             .filter(|a| a.one_contains_other())
             .count() as u32
     }
+
+    pub fn part_2() -> u32 {
+        impl AssignmentPair {
+            fn overlap(&self) -> bool {
+                self.0.start() <= self.1.end() && self.1.start() <= self.0.end()
+            }
+        }
+
+        lines()
+            .map(|s| AssignmentPair::from_str(&s))
+            .filter_map(|a| a.ok())
+            .filter(|a| a.overlap())
+            .count() as u32
+    }
 }
 
 fn main() {
-    let answer = day_4::part_1();
+    let answer = day_4::part_2();
     println!("{answer}");
 }
