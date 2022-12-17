@@ -1,4 +1,4 @@
-#![feature(iter_array_chunks)]
+#![feature(iter_array_chunks, get_many_mut)]
 
 use std::{fmt, str::FromStr};
 
@@ -320,18 +320,6 @@ pub mod day_5 {
     struct Stack(Vec<Vec<char>>);
 
     impl Stack {
-        fn mov(&mut self, cmd: Move) -> String {
-            (0..cmd.count)
-                .map(|_| self.move_one(cmd.from, cmd.to))
-                .collect()
-        }
-
-        fn move_one(&mut self, from: usize, to: usize) -> char {
-            let ch = self.0[from].pop().unwrap();
-            self.0[to].push(ch);
-            ch
-        }
-
         fn top(&self) -> String {
             self.0.iter().skip(1).map(|v| v.last().unwrap()).collect()
         }
@@ -347,7 +335,8 @@ pub mod day_5 {
         }
     }
 
-    pub fn part_1() -> impl fmt::Display {
+    /// HACK: I really don't want to parse this.
+    fn input_stack() -> Stack {
         //                 [B]     [L]     [S]
         //         [Q] [J] [C]     [W]     [F]
         //     [F] [T] [B] [D]     [P]     [P]
@@ -357,7 +346,7 @@ pub mod day_5 {
         // [C] [J] [M] [G] [P] [H] [N] [J] [D]
         // [H] [B] [R] [S] [R] [T] [S] [R] [L]
         //  1   2   3   4   5   6   7   8   9
-        let stack = Stack(vec![
+        Stack(vec![
             vec![],
             vec!['H', 'C', 'R'],
             vec!['B', 'J', 'H', 'L', 'S', 'F'],
@@ -368,31 +357,94 @@ pub mod day_5 {
             vec!['S', 'N', 'V', 'Z', 'B', 'P', 'W', 'L'],
             vec!['R', 'J', 'Q', 'G', 'C'],
             vec!['L', 'D', 'T', 'R', 'H', 'P', 'F', 'S'],
-        ]);
+        ])
+    }
+
+    /// Create a closure that will return `true` until after an item that
+    /// satisfies the predicate has been found.
+    ///
+    /// # Examples
+    ///
+    /// For a predicate `fn is_even(x) { x % 2 == 0 }`:
+    ///
+    /// ```text
+    /// 1 -> true
+    /// 3 -> true
+    /// 2 -> true // found
+    /// 4 -> false
+    /// ```
+    fn while_not_found<T>(f: impl Fn(&T) -> bool) -> impl FnMut(&T) -> bool {
+        let mut found = false;
+        move |item| {
+            if found {
+                false
+            } else if f(item) {
+                found = true;
+                true
+            } else {
+                true
+            }
+        }
+    }
+
+    fn commands() -> impl Iterator<Item = Move> {
+        lines()
+            .skip_while(while_not_found(|line: &String| line.is_empty()))
+            .filter_map(|l| l.parse().ok())
+    }
+
+    fn debug_move(mov: Move, moved: &String, stack: &Stack) {
+        debug!(
+            "\nfrom {} to {} move {}: {moved}\n{stack}",
+            mov.from, mov.to, mov.count
+        );
+    }
+
+    pub fn part_1() -> String {
+        impl Stack {
+            fn move_by_one(&mut self, cmd: Move) -> String {
+                (0..cmd.count)
+                    .map(|_| self.move_one(cmd.from, cmd.to))
+                    .collect()
+            }
+
+            fn move_one(&mut self, from: usize, to: usize) -> char {
+                let ch = self.0[from].pop().unwrap();
+                self.0[to].push(ch);
+                ch
+            }
+        }
+
+        let stack = input_stack();
         debug!("{stack}");
 
-        lines()
-            .skip_while({
-                // Skip all lines until (and including) the empty one
-                let mut found_empty = false;
-                move |line| {
-                    if found_empty {
-                        false
-                    } else if line.is_empty() {
-                        found_empty = true;
-                        true
-                    } else {
-                        true
-                    }
-                }
-            })
-            .filter_map(|l| l.parse().ok())
+        commands()
             .fold(stack, |mut stack, mov| {
-                let moved = stack.mov(mov);
-                debug!(
-                    "\nfrom {} to {} move {}: {moved}\n{stack}",
-                    mov.from, mov.to, mov.count
-                );
+                let moved = stack.move_by_one(mov);
+                debug_move(mov, &moved, &stack);
+                stack
+            })
+            .top()
+    }
+
+    pub fn part_2() -> String {
+        impl Stack {
+            fn move_many(&mut self, cmd: Move) -> String {
+                let [vec_from, vec_to] = self.0.get_many_mut([cmd.from, cmd.to]).unwrap();
+                let start_from = vec_from.len() - cmd.count;
+                let s = vec_from[start_from].to_string();
+                vec_to.extend(vec_from.drain(start_from..));
+                s
+            }
+        }
+
+        let stack = input_stack();
+        debug!("{stack}");
+
+        commands()
+            .fold(stack, |mut stack, mov| {
+                let moved = stack.move_many(mov);
+                debug_move(mov, &moved, &stack);
                 stack
             })
             .top()
@@ -401,6 +453,6 @@ pub mod day_5 {
 
 fn main() {
     tracing_subscriber::fmt::init();
-    let answer = day_5::part_1();
+    let answer = day_5::part_2();
     println!("{answer}");
 }
