@@ -291,7 +291,116 @@ pub mod day_4 {
     }
 }
 
+pub mod day_5 {
+    use std::{array, num::ParseIntError};
+
+    use tracing::debug;
+
+    use super::*;
+
+    #[derive(Clone, Copy)]
+    struct Move {
+        count: usize,
+        from: usize,
+        to: usize,
+    }
+
+    impl FromStr for Move {
+        type Err = ParseIntError;
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            let mut s = s.split_whitespace();
+            let [_move, count, _from, from, _to, to] = array::from_fn(|_| s.next().unwrap());
+            let (count, from, to) = (count.parse()?, from.parse()?, to.parse()?);
+            Ok(Self { count, from, to })
+        }
+    }
+
+    #[derive(Debug)]
+    struct Stack(Vec<Vec<char>>);
+
+    impl Stack {
+        fn mov(&mut self, cmd: Move) -> String {
+            (0..cmd.count)
+                .map(|_| self.move_one(cmd.from, cmd.to))
+                .collect()
+        }
+
+        fn move_one(&mut self, from: usize, to: usize) -> char {
+            let ch = self.0[from].pop().unwrap();
+            self.0[to].push(ch);
+            ch
+        }
+
+        fn top(&self) -> String {
+            self.0.iter().skip(1).map(|v| v.last().unwrap()).collect()
+        }
+    }
+
+    impl fmt::Display for Stack {
+        fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+            for (id, v) in self.0.iter().enumerate() {
+                let line: String = v.iter().collect();
+                writeln!(f, "{id}: {line}")?;
+            }
+            Ok(())
+        }
+    }
+
+    pub fn part_1() -> impl fmt::Display {
+        //                 [B]     [L]     [S]
+        //         [Q] [J] [C]     [W]     [F]
+        //     [F] [T] [B] [D]     [P]     [P]
+        //     [S] [J] [Z] [T]     [B] [C] [H]
+        //     [L] [H] [H] [Z] [G] [Z] [G] [R]
+        // [R] [H] [D] [R] [F] [C] [V] [Q] [T]
+        // [C] [J] [M] [G] [P] [H] [N] [J] [D]
+        // [H] [B] [R] [S] [R] [T] [S] [R] [L]
+        //  1   2   3   4   5   6   7   8   9
+        let stack = Stack(vec![
+            vec![],
+            vec!['H', 'C', 'R'],
+            vec!['B', 'J', 'H', 'L', 'S', 'F'],
+            vec!['R', 'M', 'D', 'H', 'J', 'T', 'Q'],
+            vec!['S', 'G', 'R', 'H', 'Z', 'B', 'J'],
+            vec!['R', 'P', 'F', 'Z', 'T', 'D', 'C', 'B'],
+            vec!['T', 'H', 'C', 'G'],
+            vec!['S', 'N', 'V', 'Z', 'B', 'P', 'W', 'L'],
+            vec!['R', 'J', 'Q', 'G', 'C'],
+            vec!['L', 'D', 'T', 'R', 'H', 'P', 'F', 'S'],
+        ]);
+        debug!("{stack}");
+
+        lines()
+            .skip_while({
+                // Skip all lines until (and including) the empty one
+                let mut found_empty = false;
+                move |line| {
+                    if found_empty {
+                        false
+                    } else if line.is_empty() {
+                        found_empty = true;
+                        true
+                    } else {
+                        true
+                    }
+                }
+            })
+            .filter_map(|l| l.parse().ok())
+            .fold(stack, |mut stack, mov| {
+                let moved = stack.mov(mov);
+                debug!(
+                    "\nfrom {} to {} move {}: {moved}\n{stack}",
+                    mov.from, mov.to, mov.count
+                );
+                stack
+            })
+            .top()
+    }
+}
+
 fn main() {
-    let answer = day_4::part_2();
+    tracing_subscriber::fmt::init();
+    let answer = day_5::part_1();
     println!("{answer}");
 }
